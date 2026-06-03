@@ -7,7 +7,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>FileToMarkdown.Core</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PDFium native binaries (x64/x86/ARM64) for rasterizing scanned PDF pages. -->
+    <PackageReference Include="bblanchon.PDFium.Win32" Version="*" />
+    <!-- Tesseract OCR engine + native libs. -->
+    <PackageReference Include="TesseractOCR" Version="5.*" />
+    <!-- Encode rasterized PDF pages (BGRA) to PNG for Tesseract. -->
+    <PackageReference Include="System.Drawing.Common" Version="9.*" />
+  </ItemGroup>
 
 </Project>

@@ -52,6 +52,11 @@
         <ProjectReference Include="..\FileToMarkdown.Core\FileToMarkdown.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Ship the markitdown worker next to the executable. -->
+        <Content Include="..\tools\worker.py" Link="worker.py" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
     <!-- 
         Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
         Tools extension to be activated for this project even if the Windows App SDK Nuget
