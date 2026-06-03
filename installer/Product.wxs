@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX v4/v5/v6+ source. Builds a per-machine MSI that installs the self-contained app
+  (including the bundled python/ and tessdata/ folders) under Program Files.
+
+  The publish directory is passed in as the preprocessor variable PublishDir:
+    wix build Product.wxs -arch x64 -d PublishDir=<path> -o <out>.msi
+  The <Files> element recursively harvests everything under PublishDir.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="File to Markdown Converter"
+           Manufacturer="Kartikeya Prasad"
+           Version="0.1.0"
+           UpgradeCode="7B3B2E6A-2C9E-4E2C-9B2B-4D9F3A1C0E11"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="mszip" MaximumUncompressedMediaSize="200" />
+
+    <Icon Id="AppIcon" SourceFile="$(PublishDir)\FileToMarkdown.App.exe" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="File to Markdown Converter" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="AppShortcut" Guid="*">
+        <Shortcut Id="StartMenuShortcut"
+                  Name="File to Markdown Converter"
+                  Target="[INSTALLFOLDER]FileToMarkdown.App.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\FileToMarkdownConverter"
+                       Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(PublishDir)\**" />
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="File to Markdown Converter" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="AppShortcut" />
+    </Feature>
+  </Package>
+</Wix>
