@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "FileToMarkdown.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "FileToMarkdown.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

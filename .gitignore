@@ -1,0 +1,34 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]64/
+*.user
+*.suo
+.vs/
+
+# Publish output
+publish/
+dist/
+artifacts/
+
+# ---- Large regenerated assets (produced by tools/setup-python.ps1) ----
+# Embedded Python 3.13 runtime + markitdown + deps (hundreds of MB)
+python/
+# Tesseract language data
+tessdata/
+# Bundled ffmpeg
+ffmpeg.exe
+**/ffmpeg.exe
+
+# NuGet
+*.nupkg
+packages/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.swp
