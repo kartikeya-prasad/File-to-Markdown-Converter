@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#6D28D9"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg)"/>
+  <!-- document -->
+  <path d="M86 56h62l34 34v74a14 14 0 0 1-14 14H86a14 14 0 0 1-14-14V70a14 14 0 0 1 14-14z" fill="#FFFFFF"/>
+  <path d="M148 56l34 34h-26a8 8 0 0 1-8-8z" fill="#DBE5FF"/>
+  <!-- markdown mark: M + down arrow -->
+  <g fill="#3B82F6">
+    <path d="M96 150v-44h12l14 18 14-18h12v44h-12v-26l-14 17-14-17v26z"/>
+  </g>
+  <path d="M176 120v28m0 0l-11-11m11 11l11-11" stroke="#6D28D9" stroke-width="12"
+        stroke-linecap="round" stroke-linejoin="round" transform="translate(-8 6)"/>
+</svg>

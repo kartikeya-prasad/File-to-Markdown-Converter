@@ -1,0 +1,31 @@
+using FileToMarkdown.Core;
+using Microsoft.UI.Xaml;
+
+namespace FileToMarkdown.App.Services;
+
+/// <summary>User-facing, persisted application settings.</summary>
+public sealed class AppSettings
+{
+    /// <summary>App theme. <see cref="ElementTheme.Default"/> means "follow system".</summary>
+    public ElementTheme Theme { get; set; } = ElementTheme.Default;
+
+    /// <summary>Max files converted concurrently.</summary>
+    public int Concurrency { get; set; } = Math.Max(1, Environment.ProcessorCount);
+
+    /// <summary>DPI used when OCR-ing scanned PDF pages.</summary>
+    public int OcrDpi { get; set; } = 200;
+
+    /// <summary>What to do when an output .md already exists.</summary>
+    public OverwritePolicy Overwrite { get; set; } = OverwritePolicy.Number;
+
+    /// <summary>Last-used output folder (empty = default to Documents\Markdown Output).</summary>
+    public string OutputFolder { get; set; } = string.Empty;
+
+    /// <summary>Projects these settings onto the engine's options.</summary>
+    public ConversionOptions ToConversionOptions() => new()
+    {
+        Concurrency = Math.Max(1, Concurrency),
+        OcrDpi = Math.Clamp(OcrDpi, 72, 600),
+        Overwrite = Overwrite,
+    };
+}

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FileToMarkdown.App.Models;
+using FileToMarkdown.App.Services;
 using FileToMarkdown.Core;
 using Windows.Storage.Pickers;
 
@@ -11,6 +12,9 @@ namespace FileToMarkdown.App.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private CancellationTokenSource? _cts;
+
+    /// <summary>Persisted user settings (theme, concurrency, OCR DPI, overwrite policy).</summary>
+    public AppSettings Settings { get; }
 
     public ObservableCollection<JobItem> Jobs { get; } = new();
 
@@ -33,14 +37,25 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        OutputFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Markdown Output");
+        Settings = SettingsService.Load();
+        OutputFolder = string.IsNullOrWhiteSpace(Settings.OutputFolder)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Markdown Output")
+            : Settings.OutputFolder;
         Jobs.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasJobs));
             ConvertCommand.NotifyCanExecuteChanged();
         };
     }
+
+    partial void OnOutputFolderChanged(string value)
+    {
+        Settings.OutputFolder = value;
+        SettingsService.Save(Settings);
+    }
+
+    /// <summary>Persists current settings (called after the settings dialog edits them).</summary>
+    public void SaveSettings() => SettingsService.Save(Settings);
 
     // Resolved on demand (App.MainWindow is set by the time a picker is invoked).
     private IntPtr Hwnd => WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow!);
@@ -170,7 +185,7 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
-            var options = new ConversionOptions();
+            var options = Settings.ToConversionOptions();
             await using var batch = new BatchConverter(options);
             var results = await batch.RunAsync(pending.Select(j => j.Source).ToList(), OutputFolder, progress, _cts.Token);
 
