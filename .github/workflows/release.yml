@@ -1,0 +1,98 @@
+name: Build & Release
+
+# Builds the self-contained app and all three distributables (portable zip,
+# Inno Setup .exe, WiX .msi) on a Windows runner, with the correct publish
+# flags baked in (no trimming, Windows App SDK self-contained). Pushing a
+# version tag (e.g. v0.2.0) also publishes a GitHub Release with the assets.
+#
+# You can also run it by hand from the Actions tab (workflow_dispatch); a
+# manual run uploads the artifacts to the workflow run but does NOT create a
+# release.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for the installers (x.y.z), e.g. 0.2.0'
+        required: false
+        default: '0.1.0'
+
+permissions:
+  contents: write   # needed to create the GitHub Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $v = $env:GITHUB_REF -replace '^refs/tags/v', ''
+          } else {
+            $v = '${{ github.event.inputs.version }}'
+          }
+          if ([string]::IsNullOrWhiteSpace($v)) { $v = '0.1.0' }
+          # MSI / WiX requires a strict numeric x.y.z — drop any pre-release suffix.
+          $msi = ($v -split '-')[0]
+          "version=$v"     | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "msiversion=$msi" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Display version: $v   MSI version: $msi"
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Install WiX CLI
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          # Ensure the global tools dir is on PATH for later steps.
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Fetch bundled runtime (Python 3.13 + markitdown + ffmpeg + tessdata)
+        shell: pwsh
+        run: pwsh -File tools/setup-python.ps1
+
+      - name: Build portable zip (also stages publish output for installers)
+        shell: pwsh
+        run: pwsh -File tools/build-portable.ps1
+
+      - name: Build Inno Setup installer (.exe)
+        shell: pwsh
+        run: pwsh -File tools/build-exe-installer.ps1 -AppVersion '${{ steps.ver.outputs.version }}'
+
+      - name: Build WiX installer (.msi)
+        shell: pwsh
+        run: pwsh -File tools/build-msi.ps1 -AppVersion '${{ steps.ver.outputs.msiversion }}'
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FileToMarkdownConverter-dist
+          path: |
+            dist/FileToMarkdownConverter-portable-x64.zip
+            dist/FileToMarkdownConverter-Setup.exe
+            dist/FileToMarkdownConverter.msi
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/FileToMarkdownConverter-portable-x64.zip
+            dist/FileToMarkdownConverter-Setup.exe
+            dist/FileToMarkdownConverter.msi
