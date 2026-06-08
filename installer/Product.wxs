@@ -4,13 +4,17 @@
   (including the bundled python/ and tessdata/ folders) under Program Files.
 
   The publish directory is passed in as the preprocessor variable PublishDir:
-    wix build Product.wxs -arch x64 -d PublishDir=<path> -o <out>.msi
+    wix build Product.wxs -arch x64 -d PublishDir=<path> -d Version=<x.y.z> -o <out>.msi
   The <Files> element recursively harvests everything under PublishDir.
+  Version defaults to 0.1.0 when not supplied on the command line.
 -->
+<?ifndef Version?>
+  <?define Version = "0.1.0"?>
+<?endif?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="File to Markdown Converter"
            Manufacturer="Kartikeya Prasad"
-           Version="0.1.0"
+           Version="$(var.Version)"
            UpgradeCode="7B3B2E6A-2C9E-4E2C-9B2B-4D9F3A1C0E11"
            Scope="perMachine">
 

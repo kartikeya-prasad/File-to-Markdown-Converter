@@ -76,6 +76,8 @@ powershell -File tools\build-msi.ps1             # -> FileToMarkdownConverter.ms
 
 The app locates its runtime (`python\`, `tessdata\`) by walking up from the executable, so a debug build works in place once `setup-python.ps1` has run.
 
+> **Automated releases:** pushing a version tag (e.g. `git tag v0.2.0 && git push origin v0.2.0`) runs the `Build & Release` GitHub Actions workflow, which builds all three distributables on a Windows runner with the correct publish flags and attaches them to a new GitHub Release. You can also trigger a build manually from the **Actions** tab. Don't publish hand-built artifacts from Visual Studio's *Publish* — always use the scripts above or the workflow, so trimming stays off and the Windows App SDK runtime is bundled.
+
 ## ⚠️ Known limitations
 
 - **Audio transcription** is best-effort (markitdown's backend may need internet/extra setup).

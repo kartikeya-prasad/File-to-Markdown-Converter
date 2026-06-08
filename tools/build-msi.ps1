@@ -12,6 +12,7 @@
 #>
 [CmdletBinding()]
 param(
+    [string]$AppVersion = '0.1.0',
     [string]$Platform = 'x64',
     [string]$StageDir = (Join-Path $env:SystemDrive 'f2md-stage\app')
 )
@@ -34,7 +35,7 @@ New-Item -ItemType Directory -Force -Path $dist | Out-Null
 $out = Join-Path $dist 'FileToMarkdownConverter.msi'
 
 Write-Host "=== Building MSI with WiX ===" -ForegroundColor Cyan
-& wix build (Join-Path $RepoRoot 'installer\Product.wxs') -arch $Platform -d "PublishDir=$pub" -o $out
+& wix build (Join-Path $RepoRoot 'installer\Product.wxs') -arch $Platform -d "PublishDir=$pub" -d "Version=$AppVersion" -o $out
 if ($LASTEXITCODE -ne 0) { throw "wix build failed" }
 
 if (Test-Path $out) {
