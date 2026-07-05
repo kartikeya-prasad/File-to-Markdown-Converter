@@ -15,6 +15,12 @@ public sealed class AppSettings
     /// <summary>DPI used when OCR-ing scanned PDF pages.</summary>
     public int OcrDpi { get; set; } = 200;
 
+    /// <summary>
+    /// OCR language as a <see cref="TesseractOCR.Enums.Language"/> name (e.g. "English").
+    /// Requires the matching tessdata file to be installed.
+    /// </summary>
+    public string OcrLanguage { get; set; } = nameof(TesseractOCR.Enums.Language.English);
+
     /// <summary>What to do when an output .md already exists.</summary>
     public OverwritePolicy Overwrite { get; set; } = OverwritePolicy.Number;
 
@@ -26,6 +32,9 @@ public sealed class AppSettings
     {
         Concurrency = Math.Max(1, Concurrency),
         OcrDpi = Math.Clamp(OcrDpi, 72, 600),
+        OcrLanguage = Enum.TryParse<TesseractOCR.Enums.Language>(OcrLanguage, ignoreCase: true, out var lang)
+            ? lang
+            : TesseractOCR.Enums.Language.English,
         Overwrite = Overwrite,
     };
 }

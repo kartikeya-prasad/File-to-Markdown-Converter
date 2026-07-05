@@ -67,6 +67,81 @@ public sealed class MarkitdownRunner : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Extracts the embedded text of specific (0-based) PDF pages via pdfminer in the
+    /// worker. Returns a map of page index to text; throws when the worker is
+    /// unavailable so callers can fall back to PDFium extraction.
+    /// </summary>
+    public async Task<Dictionary<int, string>> ExtractPdfPagesAsync(
+        string path, IReadOnlyList<int> pages, CancellationToken ct = default)
+    {
+        if (RuntimeLocator.PythonExe is null)
+            throw new InvalidOperationException(
+                "Bundled Python runtime not found. Run tools/setup-python.ps1.");
+
+        await _gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await EnsureWorkerAsync(ct).ConfigureAwait(false);
+            if (!_workerUsable)
+                throw new MarkitdownException("markitdown worker unavailable for pdf_pages.");
+
+            int id = ++_nextId;
+            var request = JsonSerializer.Serialize(new { id, cmd = "pdf_pages", source = path, pages });
+            await _stdin!.WriteLineAsync(request.AsMemory(), ct).ConfigureAwait(false);
+            await _stdin.FlushAsync(ct).ConfigureAwait(false);
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(Timeout);
+
+            while (true)
+            {
+                var line = await _stdout!.ReadLineAsync(cts.Token).ConfigureAwait(false);
+                if (line is null) throw new IOException("markitdown worker closed unexpectedly.");
+                if (line.Length == 0) continue;
+
+                using var doc = JsonDocument.Parse(line);
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("id", out var idEl)) continue;
+                if (idEl.ValueKind != JsonValueKind.Number || idEl.GetInt32() != id) continue;
+
+                bool ok = root.TryGetProperty("ok", out var okEl) && okEl.GetBoolean();
+                if (!ok)
+                {
+                    var err = root.TryGetProperty("error", out var e) ? e.GetString() : "unknown error";
+                    throw new MarkitdownException(err ?? "unknown error");
+                }
+
+                var result = new Dictionary<int, string>();
+                foreach (var prop in root.GetProperty("pages").EnumerateObject())
+                {
+                    if (int.TryParse(prop.Name, out int pageIndex))
+                        result[pageIndex] = prop.Value.GetString() ?? string.Empty;
+                }
+                return result;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (MarkitdownException)
+        {
+            // Clean error reply from a healthy worker — keep it running.
+            throw;
+        }
+        catch
+        {
+            // Stream/protocol failure — restart the worker on the next request.
+            KillWorker();
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     // ---- Worker lifecycle --------------------------------------------------
 
     private async Task EnsureWorkerAsync(CancellationToken ct)

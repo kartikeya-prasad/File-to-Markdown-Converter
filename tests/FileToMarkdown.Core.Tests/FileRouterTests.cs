@@ -45,13 +45,17 @@ public class FileRouterTests
 
     [Fact]
     public void Decide_UrlGoesToMarkitdown() =>
-        Assert.Equal(ConversionRoute.Markitdown, FileRouter.Decide("https://example.com", new PdfRasterizer()));
+        Assert.Equal(ConversionRoute.Markitdown, FileRouter.Decide("https://example.com"));
 
     [Fact]
     public void Decide_ImageGoesToImageOcr() =>
-        Assert.Equal(ConversionRoute.ImageOcr, FileRouter.Decide(@"C:\pics\scan.png", new PdfRasterizer()));
+        Assert.Equal(ConversionRoute.ImageOcr, FileRouter.Decide(@"C:\pics\scan.png"));
 
     [Fact]
     public void Decide_DocumentGoesToMarkitdown() =>
-        Assert.Equal(ConversionRoute.Markitdown, FileRouter.Decide(@"C:\docs\report.docx", new PdfRasterizer()));
+        Assert.Equal(ConversionRoute.Markitdown, FileRouter.Decide(@"C:\docs\report.docx"));
+
+    [Fact]
+    public void Decide_PdfTakesHybridRoute() =>
+        Assert.Equal(ConversionRoute.PdfHybrid, FileRouter.Decide(@"C:\docs\mixed.pdf"));
 }

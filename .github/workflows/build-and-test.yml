@@ -48,11 +48,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Run pytest (if Python tests exist)
+      - name: Run pytest
         run: |
-          if [ -d tests/python ]; then
-            python -m pip install --upgrade pip pytest
-            python -m pytest tests/python -v
-          else
-            echo "No Python tests yet - skipping."
-          fi
+          python -m pip install --upgrade pip pytest "pdfminer.six"
+          python -m pytest tests/python -v

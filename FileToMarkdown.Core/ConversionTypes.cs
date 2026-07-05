@@ -9,8 +9,13 @@ public enum ConversionRoute
     Markitdown,
     /// <summary>Tesseract OCR of an image file.</summary>
     ImageOcr,
-    /// <summary>Tesseract OCR of a scanned/image-only PDF (rendered with PDFium).</summary>
+    /// <summary>Legacy whole-file OCR route; superseded by <see cref="PdfHybrid"/>.</summary>
     PdfOcr,
+    /// <summary>
+    /// Per-page PDF pipeline: digital pages keep their extracted text, scanned pages
+    /// (including scans with typed page numbers) are OCR'd, assembled in page order.
+    /// </summary>
+    PdfHybrid,
 }
 
 /// <summary>Lifecycle status of a conversion job.</summary>
@@ -45,6 +50,26 @@ public sealed class ConversionOptions
 
     /// <summary>Render DPI used when OCR-ing scanned PDF pages.</summary>
     public int OcrDpi { get; set; } = 200;
+
+    /// <summary>
+    /// A PDF page with at least this many non-whitespace characters of embedded text is
+    /// treated as digital (no OCR) regardless of layout.
+    /// </summary>
+    public int PdfDigitalMinChars { get; set; } = 100;
+
+    /// <summary>
+    /// Minimum non-whitespace characters for the coverage-based digital test. Below this
+    /// (e.g. a typed page number on a scan) the page is always OCR'd, with the sparse
+    /// text merged back in afterwards.
+    /// </summary>
+    public int PdfSparseMinChars { get; set; } = 25;
+
+    /// <summary>
+    /// Minimum fraction (0..1) of the page area covered by text rectangles for a
+    /// moderately-sparse page to count as digital. Distinguishes a real title page from
+    /// a page-number stamp on a scan.
+    /// </summary>
+    public double PdfDigitalMinCoverage { get; set; } = 0.02;
 
     /// <summary>Behavior when the output .md already exists.</summary>
     public OverwritePolicy Overwrite { get; set; } = OverwritePolicy.Number;

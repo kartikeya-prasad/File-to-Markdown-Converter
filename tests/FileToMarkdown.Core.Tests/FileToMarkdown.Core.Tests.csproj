@@ -9,6 +9,10 @@
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
     <RootNamespace>FileToMarkdown.Core.Tests</RootNamespace>
+    <!-- Pin the RID so the PDFium/Tesseract native binaries resolve when tests run. -->
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x64' or '$(Platform)' == ''">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>

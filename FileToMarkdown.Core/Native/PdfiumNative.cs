@@ -72,6 +72,13 @@ public static partial class PdfiumNative
     [LibraryImport(PdfiumDll)]
     public static partial int FPDFText_GetText(IntPtr textPage, int startIndex, int count, IntPtr result);
 
+    [LibraryImport(PdfiumDll)]
+    public static partial int FPDFText_CountRects(IntPtr textPage, int startIndex, int count);
+
+    [LibraryImport(PdfiumDll)]
+    public static partial int FPDFText_GetRect(IntPtr textPage, int rectIndex,
+        out double left, out double top, out double right, out double bottom);
+
     // ── Render flags / bitmap formats ────────────────────────────────────
     public const int FPDF_ANNOT = 0x01;
     public const int FPDF_LCD_TEXT = 0x02;

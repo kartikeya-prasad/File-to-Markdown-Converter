@@ -46,6 +46,7 @@ public partial class JobItem : ObservableObject
         ConversionRoute.Markitdown => "markitdown",
         ConversionRoute.ImageOcr => "OCR (image)",
         ConversionRoute.PdfOcr => "OCR (scanned PDF)",
+        ConversionRoute.PdfHybrid => "PDF (per-page text + OCR)",
         _ => "",
     };
 

@@ -11,22 +11,22 @@ public sealed class ConversionService : IAsyncDisposable
 {
     private readonly ConversionOptions _options;
     private readonly MarkitdownRunner _markitdown;
-    private readonly PdfRasterizer _rasterizer;
+    private readonly PdfHybridConverter _pdfHybrid;
     private readonly Lazy<OcrService> _ocr;
 
     public ConversionService(ConversionOptions? options = null)
     {
         _options = options ?? new ConversionOptions();
         _markitdown = new MarkitdownRunner { Timeout = _options.Timeout };
-        _rasterizer = new PdfRasterizer { Dpi = _options.OcrDpi };
         _ocr = new Lazy<OcrService>(
             () => new OcrService(tessdataDir: null, language: _options.OcrLanguage),
             LazyThreadSafetyMode.ExecutionAndPublication);
+        _pdfHybrid = new PdfHybridConverter(_options, _markitdown, () => _ocr.Value);
     }
 
     public async Task<ConversionResult> ConvertAsync(string source, string outputDir, CancellationToken ct = default)
     {
-        var route = FileRouter.Decide(source, _rasterizer);
+        var route = FileRouter.Decide(source);
         try
         {
             Directory.CreateDirectory(outputDir);
@@ -41,9 +41,9 @@ public sealed class ConversionService : IAsyncDisposable
 
             string markdown = route switch
             {
-                ConversionRoute.ImageOcr => await Task.Run(() => _ocr.Value.OcrImageFile(source), ct).ConfigureAwait(false),
-                ConversionRoute.PdfOcr   => await Task.Run(() => _rasterizer.OcrPdf(source, _ocr.Value), ct).ConfigureAwait(false),
-                _                        => await _markitdown.ConvertAsync(source, ct).ConfigureAwait(false),
+                ConversionRoute.ImageOcr  => await Task.Run(() => _ocr.Value.OcrImageFile(source), ct).ConfigureAwait(false),
+                ConversionRoute.PdfHybrid => await _pdfHybrid.ConvertAsync(source, ct).ConfigureAwait(false),
+                _                         => await _markitdown.ConvertAsync(source, ct).ConfigureAwait(false),
             };
 
             await File.WriteAllTextAsync(outputPath, markdown, new UTF8Encoding(false), ct).ConfigureAwait(false);
