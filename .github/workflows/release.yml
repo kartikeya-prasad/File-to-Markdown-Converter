@@ -79,6 +79,23 @@ jobs:
         shell: pwsh
         run: pwsh -File tools/build-msi.ps1 -AppVersion '${{ steps.ver.outputs.msiversion }}'
 
+      - name: Generate SHA256SUMS.txt
+        shell: pwsh
+        run: |
+          # Published alongside the release assets; the in-app updater verifies the
+          # installer against this file before running it.
+          $files = @(
+            'dist/FileToMarkdownConverter-portable-x64.zip',
+            'dist/FileToMarkdownConverter-Setup.exe',
+            'dist/FileToMarkdownConverter.msi'
+          )
+          $lines = foreach ($f in $files) {
+            $h = (Get-FileHash -Algorithm SHA256 $f).Hash.ToLowerInvariant()
+            "$h  $(Split-Path -Leaf $f)"
+          }
+          Set-Content -Path dist/SHA256SUMS.txt -Value ($lines -join "`n") -Encoding ascii
+          Get-Content dist/SHA256SUMS.txt
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -87,6 +104,7 @@ jobs:
             dist/FileToMarkdownConverter-portable-x64.zip
             dist/FileToMarkdownConverter-Setup.exe
             dist/FileToMarkdownConverter.msi
+            dist/SHA256SUMS.txt
           if-no-files-found: error
 
       - name: Extract release notes from CHANGELOG
@@ -127,3 +145,4 @@ jobs:
             dist/FileToMarkdownConverter-portable-x64.zip
             dist/FileToMarkdownConverter-Setup.exe
             dist/FileToMarkdownConverter.msi
+            dist/SHA256SUMS.txt

@@ -26,6 +26,7 @@ namespace FileToMarkdown.App
         private static IServiceProvider ConfigureServices() =>
             new ServiceCollection()
                 .AddSingleton<ISettingsService, JsonSettingsService>()
+                .AddSingleton<IUpdateService, UpdateService>()
                 .AddSingleton<MainViewModel>()
                 .BuildServiceProvider();
 

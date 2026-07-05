@@ -27,6 +27,12 @@ public sealed class AppSettings
     /// <summary>Last-used output folder (empty = default to Documents\Markdown Output).</summary>
     public string OutputFolder { get; set; } = string.Empty;
 
+    /// <summary>Last time the startup update check ran (UTC); throttled to once per day.</summary>
+    public DateTime? LastUpdateCheckUtc { get; set; }
+
+    /// <summary>A version the user chose to skip; the startup prompt stays quiet for it.</summary>
+    public string? SkippedVersion { get; set; }
+
     /// <summary>Projects these settings onto the engine's options.</summary>
     public ConversionOptions ToConversionOptions() => new()
     {

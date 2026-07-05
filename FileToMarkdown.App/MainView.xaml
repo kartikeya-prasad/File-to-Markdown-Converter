@@ -243,6 +243,19 @@
                         <ComboBoxItem Content="Skip" />
                     </ComboBox>
                 </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Updates" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="CheckUpdatesButton" Content="Check for updates"
+                                Click="OnCheckUpdatesClick" />
+                        <TextBlock x:Name="UpdateStatusText" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextSecondaryBrush}" />
+                    </StackPanel>
+                    <TextBlock x:Name="AppVersionText"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextSecondaryBrush}" />
+                </StackPanel>
             </StackPanel>
         </ContentDialog>
     </Grid>
