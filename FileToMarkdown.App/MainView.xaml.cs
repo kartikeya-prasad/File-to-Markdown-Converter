@@ -1,19 +1,31 @@
 using FileToMarkdown.App.ViewModels;
 using FileToMarkdown.Core;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.UI.ViewManagement;
 
 namespace FileToMarkdown.App;
 
 public sealed partial class MainView : UserControl
 {
-    public MainViewModel ViewModel { get; } = new();
+    // Kept as a field: UISettings raises no events once garbage-collected.
+    private readonly UISettings _uiSettings = new();
+
+    public MainViewModel ViewModel { get; } = App.Services.GetRequiredService<MainViewModel>();
 
     public MainView()
     {
         InitializeComponent();
         ApplyTheme();
+
+        // Follow live OS light/dark switches while the preference is "System".
+        _uiSettings.ColorValuesChanged += (_, _) =>
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (ViewModel.Settings.Theme == ElementTheme.Default) ApplyTheme();
+            });
     }
 
     private void ApplyTheme() => Root.RequestedTheme = ViewModel.Settings.Theme;
