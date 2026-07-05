@@ -1,0 +1,58 @@
+name: Build & Test
+
+# Validates every push and PR: compiles the whole solution on Windows (the only
+# OS that can build the WinUI 3 / net9.0-windows projects) and runs the xUnit
+# tests. A separate Ubuntu job runs pytest over the Python worker scripts.
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+      - 'feature/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build solution + .NET tests (windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore FileToMarkdown.sln -p:Platform=x64
+
+      - name: Build (Release x64)
+        run: dotnet build FileToMarkdown.sln -c Release -p:Platform=x64 --no-restore
+
+      - name: Test
+        run: dotnet test tests/FileToMarkdown.Core.Tests/FileToMarkdown.Core.Tests.csproj -c Release -p:Platform=x64 --no-build --logger "console;verbosity=normal"
+
+  python-tests:
+    name: Python worker tests (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run pytest (if Python tests exist)
+        run: |
+          if [ -d tests/python ]; then
+            python -m pip install --upgrade pip pytest
+            python -m pytest tests/python -v
+          else
+            echo "No Python tests yet - skipping."
+          fi

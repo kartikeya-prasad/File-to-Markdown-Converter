@@ -67,7 +67,7 @@ public sealed class ConversionService : IAsyncDisposable
 
     // ---- Output naming -----------------------------------------------------
 
-    private static string GetBaseName(string source)
+    internal static string GetBaseName(string source)
     {
         string name;
         if (FileRouter.IsUrl(source))
@@ -108,7 +108,7 @@ public sealed class ConversionService : IAsyncDisposable
         return sb.ToString().Trim();
     }
 
-    private static string ResolveOutputPath(string baseName, string outputDir, OverwritePolicy policy, out bool skip)
+    internal static string ResolveOutputPath(string baseName, string outputDir, OverwritePolicy policy, out bool skip)
     {
         skip = false;
         var target = Path.Combine(outputDir, baseName + ".md");
