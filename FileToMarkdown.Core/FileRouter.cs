@@ -34,30 +34,16 @@ public static class FileRouter
     }
 
     /// <summary>
-    /// Decides the route. PDFs are probed for a text layer (born-digital → markitdown,
-    /// scanned → OCR). <paramref name="rasterizer"/> is used only for that probe.
+    /// Decides the route. Every PDF takes the hybrid route, which analyzes pages
+    /// individually (fully-digital documents are still handed to markitdown whole).
     /// </summary>
-    public static ConversionRoute Decide(string source, PdfRasterizer rasterizer)
+    public static ConversionRoute Decide(string source)
     {
         if (IsUrl(source)) return ConversionRoute.Markitdown;
 
         var ext = Path.GetExtension(source);
         if (ImageExtensions.Contains(ext)) return ConversionRoute.ImageOcr;
-
-        if (ext.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
-        {
-            try
-            {
-                return rasterizer.HasTextLayer(source)
-                    ? ConversionRoute.Markitdown
-                    : ConversionRoute.PdfOcr;
-            }
-            catch
-            {
-                // If we can't probe it, let markitdown try.
-                return ConversionRoute.Markitdown;
-            }
-        }
+        if (ext.Equals(".pdf", StringComparison.OrdinalIgnoreCase)) return ConversionRoute.PdfHybrid;
 
         return ConversionRoute.Markitdown;
     }

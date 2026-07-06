@@ -1,0 +1,43 @@
+name: Tool Updates
+
+# Weekly freshness check for the bundled tools (markitdown, etc.). When a newer
+# version exists, this opens a PR bumping tools/versions.json; build-and-test
+# validates it, and the next tagged release ships the update to users via the
+# in-app updater.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check for tool updates
+        run: python tools/check-tool-updates.py
+
+      - name: Open bump PR if anything changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'build: bump pinned bundled-tool versions'
+          branch: bot/tool-updates
+          delete-branch: true
+          title: 'build: bump bundled tools (markitdown & friends)'
+          body: |
+            Automated weekly check found newer versions of the bundled tools.
+            `tools/versions.json` is updated; `setup-python.ps1` installs these
+            exact versions at build time, so merging this and cutting a release
+            ships the update to all users through the in-app updater.

@@ -16,10 +16,11 @@ dist/
 artifacts/
 
 # ---- Large regenerated assets (produced by tools/setup-python.ps1) ----
-# Embedded Python 3.13 runtime + markitdown + deps (hundreds of MB)
-python/
+# Embedded Python 3.13 runtime + markitdown + deps (hundreds of MB).
+# Anchored to the repo root so paths like tests/python stay tracked.
+/python/
 # Tesseract language data
-tessdata/
+/tessdata/
 # Bundled ffmpeg
 ffmpeg.exe
 **/ffmpeg.exe
@@ -32,3 +33,6 @@ packages/
 Thumbs.db
 .DS_Store
 *.swp
+__pycache__/
+*.pyc
+.pytest_cache/

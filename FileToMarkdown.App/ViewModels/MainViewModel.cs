@@ -11,6 +11,7 @@ namespace FileToMarkdown.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly ISettingsService _settingsService;
     private CancellationTokenSource? _cts;
 
     /// <summary>Persisted user settings (theme, concurrency, OCR DPI, overwrite policy).</summary>
@@ -35,9 +36,10 @@ public partial class MainViewModel : ObservableObject
     public bool HasJobs => Jobs.Count > 0;
     public bool IsIdle => !IsConverting;
 
-    public MainViewModel()
+    public MainViewModel(ISettingsService settingsService)
     {
-        Settings = SettingsService.Load();
+        _settingsService = settingsService;
+        Settings = _settingsService.Load();
         OutputFolder = string.IsNullOrWhiteSpace(Settings.OutputFolder)
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Markdown Output")
             : Settings.OutputFolder;
@@ -51,11 +53,11 @@ public partial class MainViewModel : ObservableObject
     partial void OnOutputFolderChanged(string value)
     {
         Settings.OutputFolder = value;
-        SettingsService.Save(Settings);
+        _settingsService.Save(Settings);
     }
 
     /// <summary>Persists current settings (called after the settings dialog edits them).</summary>
-    public void SaveSettings() => SettingsService.Save(Settings);
+    public void SaveSettings() => _settingsService.Save(Settings);
 
     // Resolved on demand (App.MainWindow is set by the time a picker is invoked).
     private IntPtr Hwnd => WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow!);

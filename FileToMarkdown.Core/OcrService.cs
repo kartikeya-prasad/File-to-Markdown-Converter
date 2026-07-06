@@ -52,7 +52,7 @@ public sealed class OcrService : IDisposable
         }
     }
 
-    private static unsafe byte[] EncodeBgraToPng(byte[] bgra, int width, int height, int stride)
+    internal static unsafe byte[] EncodeBgraToPng(byte[] bgra, int width, int height, int stride)
     {
         fixed (byte* p = bgra)
         {

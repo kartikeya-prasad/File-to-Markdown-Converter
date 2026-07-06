@@ -12,6 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="FileToMarkdown.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- PDFium native binaries (x64/x86/ARM64) for rasterizing scanned PDF pages. -->
     <PackageReference Include="bblanchon.PDFium.Win32" Version="*" />
     <!-- Tesseract OCR engine + native libs. -->

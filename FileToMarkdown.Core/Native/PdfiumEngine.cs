@@ -109,6 +109,57 @@ public sealed class PdfiumEngine : IDisposable
     }
 
     /// <summary>
+    /// Extracts the page's embedded text together with the fraction of the page area
+    /// covered by text bounding rectangles. The coverage ratio separates pages with a
+    /// real (if sparse) text layout from scans that only carry a stamped page number.
+    /// </summary>
+    public (string Text, double TextAreaRatio) GetTextWithCoverage(int pageIndex)
+    {
+        lock (_docLock)
+        {
+            ThrowIfDisposed();
+            var page = PdfiumNative.FPDF_LoadPage(_document, pageIndex);
+            if (page == IntPtr.Zero) return (string.Empty, 0);
+            try
+            {
+                double pageArea = PdfiumNative.FPDF_GetPageWidth(page) * PdfiumNative.FPDF_GetPageHeight(page);
+
+                var textPage = PdfiumNative.FPDFText_LoadPage(page);
+                if (textPage == IntPtr.Zero) return (string.Empty, 0);
+                try
+                {
+                    int charCount = PdfiumNative.FPDFText_CountChars(textPage);
+                    if (charCount <= 0) return (string.Empty, 0);
+
+                    string text;
+                    int bufferSize = (charCount + 1) * 2; // UTF-16 + null terminator
+                    IntPtr buffer = Marshal.AllocHGlobal(bufferSize);
+                    try
+                    {
+                        PdfiumNative.FPDFText_GetText(textPage, 0, charCount, buffer);
+                        text = Marshal.PtrToStringUni(buffer) ?? string.Empty;
+                    }
+                    finally { Marshal.FreeHGlobal(buffer); }
+
+                    double textArea = 0;
+                    int rects = PdfiumNative.FPDFText_CountRects(textPage, 0, charCount);
+                    for (int r = 0; r < rects; r++)
+                    {
+                        if (PdfiumNative.FPDFText_GetRect(textPage, r,
+                                out double left, out double top, out double right, out double bottom) != 0)
+                            textArea += Math.Abs(right - left) * Math.Abs(top - bottom);
+                    }
+
+                    double ratio = pageArea > 0 ? Math.Clamp(textArea / pageArea, 0, 1) : 0;
+                    return (text, ratio);
+                }
+                finally { PdfiumNative.FPDFText_ClosePage(textPage); }
+            }
+            finally { PdfiumNative.FPDF_ClosePage(page); }
+        }
+    }
+
+    /// <summary>
     /// Renders a page to a 32-bpp BGRA bitmap at the given pixel size (white background).
     /// </summary>
     public (byte[] Bgra, int Width, int Height, int Stride) RenderPageBgra(int pageIndex, int width, int height)

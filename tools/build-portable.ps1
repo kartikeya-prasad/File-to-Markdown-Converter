@@ -23,7 +23,10 @@
 param(
     [string]$Configuration = 'Release',
     [string]$Platform = 'x64',
-    [string]$StageDir = (Join-Path $env:SystemDrive 'f2md-stage\app')
+    [string]$StageDir = (Join-Path $env:SystemDrive 'f2md-stage\app'),
+    # Version stamped into the assemblies; the in-app updater compares this
+    # against the latest GitHub Release tag.
+    [string]$AppVersion = '0.0.0-dev'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,7 +41,7 @@ if (-not (Test-Path (Join-Path $RepoRoot 'python\python.exe'))) {
 Write-Host "=== Publishing self-contained $rid ($Configuration) ===" -ForegroundColor Cyan
 dotnet publish $proj -c $Configuration -p:Platform=$Platform -p:RuntimeIdentifier=$rid `
     -p:SelfContained=true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None `
-    -p:PublishTrimmed=false
+    -p:PublishTrimmed=false -p:Version=$AppVersion
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
 # Locate the publish folder (the one containing the app exe).

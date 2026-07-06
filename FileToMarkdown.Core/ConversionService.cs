@@ -1,4 +1,6 @@
 using System.Text;
+using FileToMarkdown.Core.Components;
+using FileToMarkdown.Core.Ocr;
 
 namespace FileToMarkdown.Core;
 
@@ -11,22 +13,22 @@ public sealed class ConversionService : IAsyncDisposable
 {
     private readonly ConversionOptions _options;
     private readonly MarkitdownRunner _markitdown;
-    private readonly PdfRasterizer _rasterizer;
-    private readonly Lazy<OcrService> _ocr;
+    private readonly PdfHybridConverter _pdfHybrid;
+    private readonly Lazy<IOcrEngine> _ocr;
 
     public ConversionService(ConversionOptions? options = null)
     {
         _options = options ?? new ConversionOptions();
         _markitdown = new MarkitdownRunner { Timeout = _options.Timeout };
-        _rasterizer = new PdfRasterizer { Dpi = _options.OcrDpi };
-        _ocr = new Lazy<OcrService>(
-            () => new OcrService(tessdataDir: null, language: _options.OcrLanguage),
+        _ocr = new Lazy<IOcrEngine>(
+            () => OcrEngineFactory.Create(_options),
             LazyThreadSafetyMode.ExecutionAndPublication);
+        _pdfHybrid = new PdfHybridConverter(_options, _markitdown, () => _ocr.Value);
     }
 
     public async Task<ConversionResult> ConvertAsync(string source, string outputDir, CancellationToken ct = default)
     {
-        var route = FileRouter.Decide(source, _rasterizer);
+        var route = FileRouter.Decide(source);
         try
         {
             Directory.CreateDirectory(outputDir);
@@ -41,9 +43,9 @@ public sealed class ConversionService : IAsyncDisposable
 
             string markdown = route switch
             {
-                ConversionRoute.ImageOcr => await Task.Run(() => _ocr.Value.OcrImageFile(source), ct).ConfigureAwait(false),
-                ConversionRoute.PdfOcr   => await Task.Run(() => _rasterizer.OcrPdf(source, _ocr.Value), ct).ConfigureAwait(false),
-                _                        => await _markitdown.ConvertAsync(source, ct).ConfigureAwait(false),
+                ConversionRoute.ImageOcr  => await _ocr.Value.OcrImageFileAsync(source, ct).ConfigureAwait(false),
+                ConversionRoute.PdfHybrid => await ConvertPdfAsync(source, outputPath, ct).ConfigureAwait(false),
+                _                         => await _markitdown.ConvertAsync(source, ct).ConfigureAwait(false),
             };
 
             await File.WriteAllTextAsync(outputPath, markdown, new UTF8Encoding(false), ct).ConfigureAwait(false);
@@ -65,9 +67,74 @@ public sealed class ConversionService : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// PDF path. With Tesseract selected, OCRmyPDF (--redo-ocr → searchable PDF →
+    /// markitdown) is preferred when the Enhanced PDF OCR component is installed and
+    /// enabled. With Surya selected, the Markdown always comes from the per-page
+    /// hybrid so Surya's superior layout reading is honored - OCRmyPDF then only
+    /// produces the optional searchable .ocr.pdf. The hybrid is the fallback everywhere.
+    /// </summary>
+    private async Task<string> ConvertPdfAsync(string source, string outputPath, CancellationToken ct)
+    {
+        bool ocrmypdf = _options.UseOcrmyPdfWhenAvailable && OcrmyPdfRunner.IsAvailable();
+
+        if (ocrmypdf && _options.OcrEngine != OcrEngineKind.Surya)
+        {
+            var tempPdf = Path.Combine(Path.GetTempPath(), $"f2md-ocr-{Guid.NewGuid():N}.pdf");
+            try
+            {
+                await OcrmyPdfRunner.RunAsync(source, tempPdf, _options.Timeout, ct).ConfigureAwait(false);
+                string markdown = await _markitdown.ConvertAsync(tempPdf, ct).ConfigureAwait(false);
+
+                if (_options.SaveSearchablePdf)
+                    File.Copy(tempPdf, SearchablePdfPath(outputPath), overwrite: true);
+                return markdown;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                // OCRmyPDF rejects some PDFs (encryption, odd structures) - the
+                // built-in hybrid below still delivers a result.
+            }
+            finally
+            {
+                try { if (File.Exists(tempPdf)) File.Delete(tempPdf); } catch { /* temp cleanup */ }
+            }
+        }
+
+        string result = await _pdfHybrid.ConvertAsync(source, ct).ConfigureAwait(false);
+
+        // Surya route: the searchable PDF (if requested) is a best-effort side
+        // product of OCRmyPDF; its text layer is Tesseract-based, the .md is Surya's.
+        if (ocrmypdf && _options.OcrEngine == OcrEngineKind.Surya && _options.SaveSearchablePdf)
+        {
+            try
+            {
+                await OcrmyPdfRunner.RunAsync(source, SearchablePdfPath(outputPath), _options.Timeout, ct)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                // Markdown already succeeded; a failed side output must not fail the job.
+            }
+        }
+
+        return result;
+    }
+
+    private static string SearchablePdfPath(string outputPath) =>
+        Path.ChangeExtension(outputPath, null) + ".ocr.pdf";
+
     // ---- Output naming -----------------------------------------------------
 
-    private static string GetBaseName(string source)
+    internal static string GetBaseName(string source)
     {
         string name;
         if (FileRouter.IsUrl(source))
@@ -108,7 +175,7 @@ public sealed class ConversionService : IAsyncDisposable
         return sb.ToString().Trim();
     }
 
-    private static string ResolveOutputPath(string baseName, string outputDir, OverwritePolicy policy, out bool skip)
+    internal static string ResolveOutputPath(string baseName, string outputDir, OverwritePolicy policy, out bool skip)
     {
         skip = false;
         var target = Path.Combine(outputDir, baseName + ".md");
