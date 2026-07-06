@@ -21,6 +21,9 @@ public sealed class AppSettings
     /// </summary>
     public string OcrLanguage { get; set; } = nameof(TesseractOCR.Enums.Language.English);
 
+    /// <summary>OCR engine name: "Tesseract" (default) or "Surya" (on-demand install).</summary>
+    public string OcrEngine { get; set; } = nameof(OcrEngineKind.Tesseract);
+
     /// <summary>What to do when an output .md already exists.</summary>
     public OverwritePolicy Overwrite { get; set; } = OverwritePolicy.Number;
 
@@ -41,6 +44,9 @@ public sealed class AppSettings
         OcrLanguage = Enum.TryParse<TesseractOCR.Enums.Language>(OcrLanguage, ignoreCase: true, out var lang)
             ? lang
             : TesseractOCR.Enums.Language.English,
+        OcrEngine = Enum.TryParse<OcrEngineKind>(OcrEngine, ignoreCase: true, out var engine)
+            ? engine
+            : OcrEngineKind.Tesseract,
         Overwrite = Overwrite,
     };
 }

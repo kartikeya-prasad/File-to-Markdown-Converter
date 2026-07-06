@@ -1,5 +1,6 @@
 using System.Text;
 using FileToMarkdown.Core.Native;
+using FileToMarkdown.Core.Ocr;
 
 namespace FileToMarkdown.Core;
 
@@ -15,9 +16,9 @@ public sealed class PdfHybridConverter
 {
     private readonly ConversionOptions _options;
     private readonly MarkitdownRunner _markitdown;
-    private readonly Func<OcrService> _ocr;
+    private readonly Func<IOcrEngine> _ocr;
 
-    public PdfHybridConverter(ConversionOptions options, MarkitdownRunner markitdown, Func<OcrService> ocr)
+    public PdfHybridConverter(ConversionOptions options, MarkitdownRunner markitdown, Func<IOcrEngine> ocr)
     {
         _options = options;
         _markitdown = markitdown;
@@ -87,7 +88,7 @@ public sealed class PdfHybridConverter
                 else
                 {
                     var (bgra, w, h, stride) = PdfRasterizer.RenderPageAtDpi(engine, i, _options.OcrDpi);
-                    string ocrText = await Task.Run(() => ocr.OcrBgra(bgra, w, h, stride), ct).ConfigureAwait(false);
+                    string ocrText = await ocr.OcrBgraAsync(bgra, w, h, stride, ct).ConfigureAwait(false);
                     text = SparseTextMerger.Merge(ocrText, stats[i].Text);
                 }
 

@@ -28,6 +28,15 @@ public enum ConversionStatus
     Skipped,
 }
 
+/// <summary>Which OCR backend recognizes scanned pages and images.</summary>
+public enum OcrEngineKind
+{
+    /// <summary>In-process Tesseract - lightweight, always available.</summary>
+    Tesseract,
+    /// <summary>Surya (Python transformer models) - better table/layout fidelity; installed on demand.</summary>
+    Surya,
+}
+
 /// <summary>What to do when the target .md file already exists.</summary>
 public enum OverwritePolicy
 {
@@ -45,7 +54,10 @@ public sealed class ConversionOptions
     /// <summary>Max files processed concurrently. Defaults to processor count.</summary>
     public int Concurrency { get; set; } = Math.Max(1, Environment.ProcessorCount);
 
-    /// <summary>OCR language (requires the matching tessdata file).</summary>
+    /// <summary>OCR backend. Surya silently falls back to Tesseract when not installed.</summary>
+    public OcrEngineKind OcrEngine { get; set; } = OcrEngineKind.Tesseract;
+
+    /// <summary>OCR language for Tesseract (requires the matching tessdata file).</summary>
     public Language OcrLanguage { get; set; } = Language.English;
 
     /// <summary>Render DPI used when OCR-ing scanned PDF pages.</summary>

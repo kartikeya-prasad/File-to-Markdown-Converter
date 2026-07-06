@@ -169,6 +169,11 @@ public sealed partial class MainView : UserControl
         ConcurrencyBox.Value = s.Concurrency;
         DpiBox.Value = s.OcrDpi;
         OverwriteCombo.SelectedIndex = (int)s.Overwrite;
+        OcrEngineCombo.SelectedIndex =
+            s.OcrEngine.Equals(nameof(OcrEngineKind.Surya), StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        OcrEngineStatusText.Text = PythonPackageInstaller.IsPackagePresent("surya")
+            ? "Surya is installed and ready."
+            : "Surya is not installed yet — selecting it downloads ~2 GB (PyTorch) plus model files on first use.";
         UpdateStatusText.Text = string.Empty;
         AppVersionText.Text = $"Current version: v{_updates.CurrentVersion}"
             + (_updates.IsInnoInstall ? "" : " (updates via download page for this install type)");
@@ -187,8 +192,115 @@ public sealed partial class MainView : UserControl
         if (!double.IsNaN(DpiBox.Value)) s.OcrDpi = (int)DpiBox.Value;
         s.Overwrite = (OverwritePolicy)Math.Max(0, OverwriteCombo.SelectedIndex);
 
+        bool wantsSurya = OcrEngineCombo.SelectedIndex == 1;
+        s.OcrEngine = wantsSurya ? nameof(OcrEngineKind.Surya) : nameof(OcrEngineKind.Tesseract);
+
         ViewModel.SaveSettings();
         ApplyTheme();
+
+        if (wantsSurya && !PythonPackageInstaller.IsPackagePresent("surya"))
+            await InstallSuryaAsync();
+    }
+
+    /// <summary>On-demand Surya install: confirm, disk-space precheck, streamed pip log,
+    /// cancellation, and a clean fallback to Tesseract on failure.</summary>
+    private async Task InstallSuryaAsync()
+    {
+        const long RequiredFreeBytes = 6L * 1024 * 1024 * 1024; // pip cache + torch + models
+
+        var confirm = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Install Surya OCR?",
+            Content = "Surya needs a one-time download of roughly 2 GB (PyTorch and dependencies), "
+                    + "plus 1–2 GB of model files fetched automatically on first use.\n\n"
+                    + "Tesseract remains available either way.",
+            PrimaryButtonText = "Download and install",
+            CloseButtonText = "Not now",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        if (await confirm.ShowAsync() != ContentDialogResult.Primary)
+        {
+            RevertToTesseract("Surya install declined.");
+            return;
+        }
+
+        if (PythonPackageInstaller.GetFreeDiskBytes() < RequiredFreeBytes)
+        {
+            RevertToTesseract(null);
+            await new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Not enough disk space",
+                Content = "Surya needs about 6 GB free during installation. Free some space and try again; "
+                        + "the OCR engine stays on Tesseract for now.",
+                CloseButtonText = "OK",
+            }.ShowAsync();
+            return;
+        }
+
+        var logText = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+            Text = "Starting pip…",
+        };
+        using var cts = new CancellationTokenSource();
+        var progressDialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Installing Surya OCR…",
+            Content = new StackPanel
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new ProgressBar { IsIndeterminate = true },
+                    new ScrollViewer { MaxHeight = 160, Content = logText },
+                },
+            },
+            CloseButtonText = "Cancel",
+        };
+        progressDialog.CloseButtonClick += (_, _) => cts.Cancel();
+
+        var progress = new Progress<string>(line => logText.Text = line);
+        var showTask = progressDialog.ShowAsync();
+        try
+        {
+            await new PythonPackageInstaller().InstallAsync("surya-ocr", progress, cts.Token);
+            progressDialog.Hide();
+            await new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Surya installed",
+                Content = "Surya OCR is ready. Its models (~1–2 GB) download automatically the first "
+                        + "time it runs, so the first conversion will take noticeably longer.",
+                CloseButtonText = "OK",
+            }.ShowAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            RevertToTesseract("Surya install cancelled — using Tesseract.");
+        }
+        catch (Exception ex)
+        {
+            progressDialog.Hide();
+            RevertToTesseract(null);
+            await new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = "Surya install failed",
+                Content = $"The OCR engine stays on Tesseract.\n\n{ex.Message}",
+                CloseButtonText = "OK",
+            }.ShowAsync();
+        }
+    }
+
+    private void RevertToTesseract(string? status)
+    {
+        ViewModel.Settings.OcrEngine = nameof(OcrEngineKind.Tesseract);
+        ViewModel.SaveSettings();
+        if (status is not null) ViewModel.StatusSummary = status;
     }
 
     private void OnDragOver(object sender, DragEventArgs e)

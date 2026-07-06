@@ -37,6 +37,17 @@ public static class RuntimeLocator
         }
     }
 
+    /// <summary>Full path to the Surya OCR worker script, or null if not found.</summary>
+    public static string? SuryaWorkerScript
+    {
+        get
+        {
+            var local = Path.Combine(BaseDirectory, "surya_worker.py");
+            if (File.Exists(local)) return local;
+            return FindUpwards(Path.Combine("tools", "surya_worker.py"), isDirectory: false);
+        }
+    }
+
     /// <summary>Full path to the <c>tessdata</c> directory, or null if not found.</summary>
     public static string? TessdataDir => FindUpwards("tessdata", isDirectory: true);
 

@@ -236,6 +236,18 @@
                 </StackPanel>
 
                 <StackPanel Spacing="6">
+                    <TextBlock Text="OCR engine" FontWeight="SemiBold" />
+                    <ComboBox x:Name="OcrEngineCombo" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="Tesseract (built in, fast)" />
+                        <ComboBoxItem Content="Surya (better tables/layout — large download)" />
+                    </ComboBox>
+                    <TextBlock x:Name="OcrEngineStatusText"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
                     <TextBlock Text="When a .md already exists" FontWeight="SemiBold" />
                     <ComboBox x:Name="OverwriteCombo" HorizontalAlignment="Stretch">
                         <ComboBoxItem Content="Write a numbered copy" />

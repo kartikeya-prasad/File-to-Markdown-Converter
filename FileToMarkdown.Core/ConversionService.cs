@@ -1,4 +1,5 @@
 using System.Text;
+using FileToMarkdown.Core.Ocr;
 
 namespace FileToMarkdown.Core;
 
@@ -12,14 +13,14 @@ public sealed class ConversionService : IAsyncDisposable
     private readonly ConversionOptions _options;
     private readonly MarkitdownRunner _markitdown;
     private readonly PdfHybridConverter _pdfHybrid;
-    private readonly Lazy<OcrService> _ocr;
+    private readonly Lazy<IOcrEngine> _ocr;
 
     public ConversionService(ConversionOptions? options = null)
     {
         _options = options ?? new ConversionOptions();
         _markitdown = new MarkitdownRunner { Timeout = _options.Timeout };
-        _ocr = new Lazy<OcrService>(
-            () => new OcrService(tessdataDir: null, language: _options.OcrLanguage),
+        _ocr = new Lazy<IOcrEngine>(
+            () => OcrEngineFactory.Create(_options),
             LazyThreadSafetyMode.ExecutionAndPublication);
         _pdfHybrid = new PdfHybridConverter(_options, _markitdown, () => _ocr.Value);
     }
@@ -41,7 +42,7 @@ public sealed class ConversionService : IAsyncDisposable
 
             string markdown = route switch
             {
-                ConversionRoute.ImageOcr  => await Task.Run(() => _ocr.Value.OcrImageFile(source), ct).ConfigureAwait(false),
+                ConversionRoute.ImageOcr  => await _ocr.Value.OcrImageFileAsync(source, ct).ConfigureAwait(false),
                 ConversionRoute.PdfHybrid => await _pdfHybrid.ConvertAsync(source, ct).ConfigureAwait(false),
                 _                         => await _markitdown.ConvertAsync(source, ct).ConfigureAwait(false),
             };

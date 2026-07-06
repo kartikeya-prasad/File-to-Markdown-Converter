@@ -57,8 +57,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Ship the markitdown worker next to the executable. -->
+        <!-- Ship the Python workers next to the executable. -->
         <Content Include="..\tools\worker.py" Link="worker.py" CopyToOutputDirectory="PreserveNewest" />
+        <Content Include="..\tools\surya_worker.py" Link="surya_worker.py" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <!-- 
