@@ -15,9 +15,14 @@ Release description, so keep the newest version at the top in the format below.
 - The OCR language setting now actually reaches the OCR engine.
 
 ### Added
-- **In-app auto-updates** from GitHub Releases: daily startup check, manual
-  "Check for updates" in Settings, SHA-256 verification of the downloaded
-  installer, and per-version skip. Releases now publish `SHA256SUMS.txt`.
+- **In-app auto-updates** from GitHub Releases: checked on every launch plus a
+  manual "Check for updates" in Settings, SHA-256 verification of the
+  downloaded installer, and per-version skip. Releases now publish
+  `SHA256SUMS.txt`.
+- **MSIX package** built and signed in CI on every release. Signed with a
+  self-signed certificate (public `.cer` published alongside for a one-time
+  Trusted People import); automatically switches to a real certificate if
+  signing secrets are configured.
 - **Selectable OCR engine:** built-in Tesseract (default) or Surya — much
   better table/layout fidelity — installed on demand (~2 GB) with a guided,
   cancellable download inside Settings.
@@ -36,12 +41,18 @@ Release description, so keep the newest version at the top in the format below.
 - MIT license, CONTRIBUTING guide, and a reworked README.
 
 ### Changed
+- With the Surya engine selected, PDF Markdown always comes from Surya's
+  per-page pipeline (best table fidelity); OCRmyPDF is then used only to
+  produce the optional searchable PDF instead of overriding the engine choice.
+- On-demand Python packages (Surya, OCRmyPDF) now install into a per-user
+  directory, so they work for MSIX and per-machine installs where the app
+  folder is read-only.
 - Bundled tool versions are pinned in `tools/versions.json` for reproducible
   release builds (previously "latest at build time").
 - Release notes are now hybrid: the curated section from this file plus
   GitHub's auto-generated categorized commit notes.
-- Removed the unused MSIX template leftovers; MSIX packaging is documented as
-  future work pending a code-signing certificate.
+- Replaced the unused MSIX template leftovers with a real CI-built MSIX
+  package (see Added).
 
 ## v0.2.0 — 2026-06-08
 

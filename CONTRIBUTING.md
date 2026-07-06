@@ -55,8 +55,13 @@ or dispatching the **Build & Release** workflow. It builds the portable zip, the
 Inno Setup installer and the MSI, generates `SHA256SUMS.txt`, and publishes a GitHub
 Release; installed apps pick it up through the in-app updater.
 
-### Signing (future work)
+### Signing
 
-Artifacts are currently unsigned; MSIX packaging is parked until a code-signing
-certificate (e.g. Azure Trusted Signing) is set up. Store certificates and
-passwords only in GitHub Actions secrets — never in the repository.
+The MSIX is signed in CI: with the certificate from the `SIGNING_PFX_B64` /
+`SIGNING_PFX_PASSWORD` repository secrets when present, otherwise with a
+build-generated **self-signed** certificate whose public `.cer` is published in
+the release (users import it once into Trusted People). The Setup.exe/MSI are
+currently unsigned. To move to trusted signing later (e.g. Azure Trusted
+Signing or an OV certificate), add the secrets — no workflow changes needed.
+Store certificates and passwords only in GitHub Actions secrets — never in the
+repository.

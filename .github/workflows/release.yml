@@ -79,6 +79,15 @@ jobs:
         shell: pwsh
         run: pwsh -File tools/build-msi.ps1 -AppVersion '${{ steps.ver.outputs.msiversion }}'
 
+      - name: Build MSIX (self-signed unless signing secrets are set)
+        shell: pwsh
+        env:
+          SIGNING_PFX_B64: ${{ secrets.SIGNING_PFX_B64 }}
+          SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        # Must run AFTER the zip/Inno/MSI steps: it adds AppxManifest.xml into the
+        # shared staging folder, which the other packagers must not include.
+        run: pwsh -File tools/build-msix.ps1 -AppVersion '${{ steps.ver.outputs.version }}'
+
       - name: Generate SHA256SUMS.txt
         shell: pwsh
         run: |
@@ -87,8 +96,10 @@ jobs:
           $files = @(
             'dist/FileToMarkdownConverter-portable-x64.zip',
             'dist/FileToMarkdownConverter-Setup.exe',
-            'dist/FileToMarkdownConverter.msi'
+            'dist/FileToMarkdownConverter.msi',
+            'dist/FileToMarkdownConverter.msix'
           )
+          if (Test-Path 'dist/FileToMarkdownConverter.cer') { $files += 'dist/FileToMarkdownConverter.cer' }
           $lines = foreach ($f in $files) {
             $h = (Get-FileHash -Algorithm SHA256 $f).Hash.ToLowerInvariant()
             "$h  $(Split-Path -Leaf $f)"
@@ -104,6 +115,8 @@ jobs:
             dist/FileToMarkdownConverter-portable-x64.zip
             dist/FileToMarkdownConverter-Setup.exe
             dist/FileToMarkdownConverter.msi
+            dist/FileToMarkdownConverter.msix
+            dist/FileToMarkdownConverter.cer
             dist/SHA256SUMS.txt
           if-no-files-found: error
 
@@ -127,6 +140,21 @@ jobs:
               Write-Warning "No CHANGELOG.md section found for v$v; using a placeholder."
             }
           }
+          if (Test-Path 'dist/FileToMarkdownConverter.cer') {
+            # Kept as a joined array (not a here-string) so YAML block indentation
+            # stays intact and backticks survive PowerShell quoting.
+            $msixNotes = @(
+              '', '', '---',
+              '### Installing the MSIX (one-time certificate import)',
+              'The MSIX is signed with a self-signed certificate. Before the first MSIX install:',
+              '1. Download `FileToMarkdownConverter.cer` from this release.',
+              '2. Double-click it -> **Install Certificate...** -> **Local Machine** -> **Place all certificates in the following store** -> **Trusted People** -> Finish (requires admin).',
+              '3. Double-click `FileToMarkdownConverter.msix` to install.',
+              '',
+              'The `Setup.exe` and `.msi` installers need no certificate step.'
+            )
+            $body += ($msixNotes -join "`n")
+          }
           Set-Content -Path release-notes.md -Value $body -Encoding utf8
           Write-Host "----- release notes -----"
           Write-Host $body
@@ -148,4 +176,6 @@ jobs:
             dist/FileToMarkdownConverter-portable-x64.zip
             dist/FileToMarkdownConverter-Setup.exe
             dist/FileToMarkdownConverter.msi
+            dist/FileToMarkdownConverter.msix
+            dist/FileToMarkdownConverter.cer
             dist/SHA256SUMS.txt

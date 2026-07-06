@@ -42,18 +42,22 @@ Grab the latest build from the [**Releases**](../../releases) page:
 | `FileToMarkdownConverter-Setup.exe` | Recommended — friendly installer with Start Menu/desktop shortcuts and **auto-update support**. |
 | `FileToMarkdownConverter-portable-x64.zip` | Portable — unzip anywhere and run `FileToMarkdown.App.exe`. No install. |
 | `FileToMarkdownConverter.msi` | MSI installer (WiX), for scripted/enterprise installs. |
+| `FileToMarkdownConverter.msix` | Modern Windows package (see certificate note below). |
+| `FileToMarkdownConverter.cer` | Public certificate for the MSIX — one-time import before the first MSIX install. |
 | `SHA256SUMS.txt` | Checksums for all artifacts (verified by the in-app updater). |
 
 All artifacts are **self-contained** — no need to install .NET, the Windows App SDK, or Python. The Python 3.13 runtime, markitdown, ffmpeg, and Tesseract data are bundled inside.
 
 > A true single-file `.exe` isn't possible here: WinUI 3 + native PDFium/Tesseract libraries + the embedded Python bundle can't be packed into one file. "Portable" means an xcopy-deployable folder you launch by its `.exe`.
->
-> **MSIX:** planned once a code-signing certificate is in place (unsigned MSIX packages can't be installed without manually trusting a certificate).
+
+### Installing the MSIX (one-time certificate import)
+
+The MSIX is signed in CI with a **self-signed certificate** (no free publicly-trusted signing exists). Before your first MSIX install: download `FileToMarkdownConverter.cer` → double-click → **Install Certificate…** → **Local Machine** → store **Trusted People** → Finish (needs admin). Then double-click the `.msix`. The `Setup.exe`/`.msi` need no certificate step. If a real code-signing certificate is ever added as a repo secret (`SIGNING_PFX_B64`/`SIGNING_PFX_PASSWORD`), CI automatically signs with it instead and the import step disappears.
 
 ## 🔄 How updates work
 
-- The app checks GitHub Releases once a day at startup (and via **Settings → Check for updates**).
-- Setup.exe installs update in place after you confirm; downloads are verified against `SHA256SUMS.txt`. MSI/portable users are pointed to the release page instead.
+- The app checks GitHub Releases **every time it starts** (and via **Settings → Check for updates**); versions you choose to skip stay skipped.
+- Setup.exe installs update in place after you confirm; downloads are verified against `SHA256SUMS.txt`. MSI/MSIX/portable users are pointed to the release page instead.
 - **Bundled tools stay fresh too:** markitdown & friends are pinned in `tools/versions.json`; a weekly workflow opens a bump PR when new versions ship, so every release carries current tools to users.
 
 ## 🧠 How it works

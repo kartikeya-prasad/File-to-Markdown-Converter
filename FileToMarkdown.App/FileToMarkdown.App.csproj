@@ -5,7 +5,8 @@
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
         <OutputType>WinExe</OutputType>
 
-        <!-- WinUI 3 (unpackaged; MSIX packaging is future work pending a signing certificate) -->
+        <!-- WinUI 3. Built unpackaged; the release MSIX is produced separately by
+             tools/build-msix.ps1 over the publish output (packaging/msix/AppxManifest.xml). -->
         <UseWinUI>true</UseWinUI>
         <WindowsPackageType>None</WindowsPackageType>
 

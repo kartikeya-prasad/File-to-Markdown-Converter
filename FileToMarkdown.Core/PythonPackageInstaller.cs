@@ -11,6 +11,25 @@ namespace FileToMarkdown.Core;
 public sealed class PythonPackageInstaller
 {
     /// <summary>
+    /// Where on-demand packages land. The bundled python\ folder is read-only for
+    /// MSIX installs (WindowsApps) and admin-only for per-machine installs under
+    /// Program Files, so pip targets this per-user directory instead; every worker
+    /// process gets it on PYTHONPATH.
+    /// </summary>
+    public static string UserSitePackagesDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "FileToMarkdownConverter", "site-packages");
+
+    /// <summary>Adds the per-user package directory to a worker process's PYTHONPATH.</summary>
+    public static void ApplyPythonPath(ProcessStartInfo psi)
+    {
+        var existing = psi.Environment.TryGetValue("PYTHONPATH", out var current) ? current : null;
+        psi.Environment["PYTHONPATH"] = string.IsNullOrEmpty(existing)
+            ? UserSitePackagesDir
+            : UserSitePackagesDir + Path.PathSeparator + existing;
+    }
+
+    /// <summary>
     /// True when <paramref name="importName"/> is importable in the bundled Python.
     /// Uses find_spec so heavyweight packages (torch) are not actually loaded.
     /// </summary>
@@ -29,6 +48,7 @@ public sealed class PythonPackageInstaller
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+            ApplyPythonPath(psi);
             psi.ArgumentList.Add("-c");
             psi.ArgumentList.Add(
                 $"import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('{importName}') else 1)");
@@ -78,10 +98,14 @@ public sealed class PythonPackageInstaller
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
         };
+        Directory.CreateDirectory(UserSitePackagesDir);
         psi.ArgumentList.Add("-m");
         psi.ArgumentList.Add("pip");
         psi.ArgumentList.Add("install");
         psi.ArgumentList.Add("--no-warn-script-location");
+        psi.ArgumentList.Add("--upgrade");
+        psi.ArgumentList.Add("--target");
+        psi.ArgumentList.Add(UserSitePackagesDir);
         foreach (var part in pipSpec.Split(' ', StringSplitOptions.RemoveEmptyEntries))
             psi.ArgumentList.Add(part);
 

@@ -270,6 +270,7 @@ public sealed class MarkitdownRunner : IAsyncDisposable
         psi.ArgumentList.Add("utf8");
         psi.Environment["PYTHONIOENCODING"] = "utf-8";
         psi.Environment["PYTHONUNBUFFERED"] = "1";
+        PythonPackageInstaller.ApplyPythonPath(psi);
         return psi;
     }
 

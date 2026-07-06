@@ -84,6 +84,7 @@ public sealed class SuryaOcrEngine : IOcrEngine
         psi.ArgumentList.Add(script);
         psi.Environment["PYTHONIOENCODING"] = "utf-8";
         psi.Environment["PYTHONUNBUFFERED"] = "1";
+        PythonPackageInstaller.ApplyPythonPath(psi);
 
         var proc = new Process { StartInfo = psi };
         if (!proc.Start())

@@ -42,11 +42,13 @@ public static class OcrmyPdfRunner
         psi.ArgumentList.Add(inputPdf);
         psi.ArgumentList.Add(outputPdf);
 
-        // OCRmyPDF locates tesseract and ghostscript via PATH.
+        // OCRmyPDF locates tesseract and ghostscript via PATH; the package itself
+        // lives in the per-user site-packages directory.
         var extraPath = Path.GetDirectoryName(tesseract) + Path.PathSeparator
                       + Path.GetDirectoryName(ghostscript);
         psi.Environment["PATH"] = extraPath + Path.PathSeparator
                                 + (Environment.GetEnvironmentVariable("PATH") ?? string.Empty);
+        PythonPackageInstaller.ApplyPythonPath(psi);
 
         using var proc = new Process { StartInfo = psi };
         if (!proc.Start())

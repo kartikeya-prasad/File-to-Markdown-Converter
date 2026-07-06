@@ -42,12 +42,7 @@ public sealed partial class MainView : UserControl
     {
         Loaded -= OnLoadedCheckForUpdates;
 
-        var s = ViewModel.Settings;
-        if (s.LastUpdateCheckUtc is { } last && DateTime.UtcNow - last < TimeSpan.FromHours(24))
-            return;
-        s.LastUpdateCheckUtc = DateTime.UtcNow;
-        ViewModel.SaveSettings();
-
+        // Checked on every launch (user preference); "Skip this version" still applies.
         UpdatePlan? plan;
         try
         {
@@ -55,10 +50,10 @@ public sealed partial class MainView : UserControl
         }
         catch
         {
-            return; // Offline or rate-limited - stay quiet, try again tomorrow.
+            return; // Offline or rate-limited - stay quiet, try again next launch.
         }
 
-        if (plan is null || plan.LatestVersion == s.SkippedVersion) return;
+        if (plan is null || plan.LatestVersion == ViewModel.Settings.SkippedVersion) return;
         await ShowUpdateDialogAsync(plan);
     }
 
