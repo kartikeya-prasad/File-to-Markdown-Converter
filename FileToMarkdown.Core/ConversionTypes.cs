@@ -83,6 +83,15 @@ public sealed class ConversionOptions
     /// </summary>
     public double PdfDigitalMinCoverage { get; set; } = 0.02;
 
+    /// <summary>
+    /// Prefer OCRmyPDF (--redo-ocr) for PDFs when the Enhanced PDF OCR component is
+    /// installed; the built-in per-page hybrid remains the fallback.
+    /// </summary>
+    public bool UseOcrmyPdfWhenAvailable { get; set; } = true;
+
+    /// <summary>Also write a searchable "&lt;name&gt;.ocr.pdf" next to the Markdown (needs OCRmyPDF).</summary>
+    public bool SaveSearchablePdf { get; set; }
+
     /// <summary>Behavior when the output .md already exists.</summary>
     public OverwritePolicy Overwrite { get; set; } = OverwritePolicy.Number;
 

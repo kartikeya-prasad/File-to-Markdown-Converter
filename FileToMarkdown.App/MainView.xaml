@@ -257,6 +257,20 @@
                 </StackPanel>
 
                 <StackPanel Spacing="6">
+                    <TextBlock Text="Enhanced PDF OCR (OCRmyPDF)" FontWeight="SemiBold" />
+                    <TextBlock x:Name="OcrmyPdfStatusText"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                    <Button x:Name="InstallOcrmyPdfButton" Content="Install component…"
+                            Click="OnInstallOcrmyPdfClick" />
+                    <CheckBox x:Name="UseOcrmyPdfCheck"
+                              Content="Use OCRmyPDF for PDFs when installed" />
+                    <CheckBox x:Name="SavePdfCheck"
+                              Content="Also save a searchable PDF (name.ocr.pdf)" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
                     <TextBlock Text="Updates" FontWeight="SemiBold" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button x:Name="CheckUpdatesButton" Content="Check for updates"

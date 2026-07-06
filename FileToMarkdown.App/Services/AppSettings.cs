@@ -24,6 +24,12 @@ public sealed class AppSettings
     /// <summary>OCR engine name: "Tesseract" (default) or "Surya" (on-demand install).</summary>
     public string OcrEngine { get; set; } = nameof(OcrEngineKind.Tesseract);
 
+    /// <summary>Prefer OCRmyPDF for PDFs when the Enhanced PDF OCR component is installed.</summary>
+    public bool UseOcrmyPdf { get; set; } = true;
+
+    /// <summary>Also save a searchable "&lt;name&gt;.ocr.pdf" next to each converted PDF's Markdown.</summary>
+    public bool SaveSearchablePdf { get; set; }
+
     /// <summary>What to do when an output .md already exists.</summary>
     public OverwritePolicy Overwrite { get; set; } = OverwritePolicy.Number;
 
@@ -47,6 +53,8 @@ public sealed class AppSettings
         OcrEngine = Enum.TryParse<OcrEngineKind>(OcrEngine, ignoreCase: true, out var engine)
             ? engine
             : OcrEngineKind.Tesseract,
+        UseOcrmyPdfWhenAvailable = UseOcrmyPdf,
+        SaveSearchablePdf = SaveSearchablePdf,
         Overwrite = Overwrite,
     };
 }

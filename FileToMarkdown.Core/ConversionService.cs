@@ -1,4 +1,5 @@
 using System.Text;
+using FileToMarkdown.Core.Components;
 using FileToMarkdown.Core.Ocr;
 
 namespace FileToMarkdown.Core;
@@ -43,7 +44,7 @@ public sealed class ConversionService : IAsyncDisposable
             string markdown = route switch
             {
                 ConversionRoute.ImageOcr  => await _ocr.Value.OcrImageFileAsync(source, ct).ConfigureAwait(false),
-                ConversionRoute.PdfHybrid => await _pdfHybrid.ConvertAsync(source, ct).ConfigureAwait(false),
+                ConversionRoute.PdfHybrid => await ConvertPdfAsync(source, outputPath, ct).ConfigureAwait(false),
                 _                         => await _markitdown.ConvertAsync(source, ct).ConfigureAwait(false),
             };
 
@@ -64,6 +65,45 @@ public sealed class ConversionService : IAsyncDisposable
                 Source = source, Status = ConversionStatus.Failed, Route = route, Error = ex.Message,
             };
         }
+    }
+
+    /// <summary>
+    /// PDF path: OCRmyPDF (--redo-ocr → searchable PDF → markitdown) when the Enhanced
+    /// PDF OCR component is installed and enabled, else the built-in per-page hybrid.
+    /// </summary>
+    private async Task<string> ConvertPdfAsync(string source, string outputPath, CancellationToken ct)
+    {
+        if (_options.UseOcrmyPdfWhenAvailable && OcrmyPdfRunner.IsAvailable())
+        {
+            var tempPdf = Path.Combine(Path.GetTempPath(), $"f2md-ocr-{Guid.NewGuid():N}.pdf");
+            try
+            {
+                await OcrmyPdfRunner.RunAsync(source, tempPdf, _options.Timeout, ct).ConfigureAwait(false);
+                string markdown = await _markitdown.ConvertAsync(tempPdf, ct).ConfigureAwait(false);
+
+                if (_options.SaveSearchablePdf)
+                {
+                    var pdfTarget = Path.ChangeExtension(outputPath, null) + ".ocr.pdf";
+                    File.Copy(tempPdf, pdfTarget, overwrite: true);
+                }
+                return markdown;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                // OCRmyPDF rejects some PDFs (encryption, odd structures) - the
+                // built-in hybrid below still delivers a result.
+            }
+            finally
+            {
+                try { if (File.Exists(tempPdf)) File.Delete(tempPdf); } catch { /* temp cleanup */ }
+            }
+        }
+
+        return await _pdfHybrid.ConvertAsync(source, ct).ConfigureAwait(false);
     }
 
     // ---- Output naming -----------------------------------------------------
