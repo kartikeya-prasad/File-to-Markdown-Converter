@@ -18,12 +18,17 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$PyVersion = '3.13.1',
+    [string]$PyVersion,
     [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'   # faster Invoke-WebRequest
+
+# Pinned tool versions (kept fresh by the weekly tool-updates workflow) make
+# release builds reproducible instead of installing whatever is latest.
+$Versions = Get-Content (Join-Path $PSScriptRoot 'versions.json') -Raw | ConvertFrom-Json
+if (-not $PyVersion) { $PyVersion = $Versions.python }
 
 # ---- Paths -----------------------------------------------------------------
 $RepoRoot   = Split-Path -Parent $PSScriptRoot
@@ -83,7 +88,7 @@ if ($mdPresent -and -not $Force) {
     Write-Host "  [skip] markitdown already importable"
 } else {
     & $pythonExe -m pip install --upgrade pip
-    & $pythonExe -m pip install "markitdown[all]"
+    & $pythonExe -m pip install "markitdown[all]==$($Versions.markitdown)"
     if ($LASTEXITCODE -ne 0) { throw "markitdown install failed" }
     & $pythonExe -c "from markitdown import MarkItDown; print('markitdown OK')"
     if ($LASTEXITCODE -ne 0) { throw "markitdown import check failed" }
@@ -97,7 +102,7 @@ if ((Test-Path $ffmpegExe) -and -not $Force) {
 } else {
     try {
         $ffzip = Join-Path $TempDir 'ffmpeg.zip'
-        Get-File 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' $ffzip
+        Get-File $Versions.ffmpeg_url $ffzip
         $ffx = Join-Path $TempDir 'ffmpeg-extract'
         if (Test-Path $ffx) { Remove-Item -Recurse -Force $ffx }
         Expand-Archive -Path $ffzip -DestinationPath $ffx -Force
@@ -116,7 +121,7 @@ $engData = Join-Path $TessDir 'eng.traineddata'
 if ((Test-Path $engData) -and -not $Force) {
     Write-Host "  [skip] eng.traineddata already present"
 } else {
-    Get-File 'https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata' $engData
+    Get-File $Versions.tessdata_eng_url $engData
     Write-Host "  eng.traineddata -> $engData"
 }
 

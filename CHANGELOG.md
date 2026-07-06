@@ -4,6 +4,45 @@ All notable changes to this project are documented here. The release workflow
 reads the section matching the version being built and uses it as the GitHub
 Release description, so keep the newest version at the top in the format below.
 
+## v0.3.0 — 2026-07-06
+
+### Fixed
+- **Mixed scanned/digital PDFs convert correctly.** The old whole-file text
+  probe treated scans with machine-typed page numbers as digital documents and
+  skipped OCR entirely. PDFs are now analyzed page by page: digital pages keep
+  their extracted text, scanned pages are OCR'd, and sparse stamped text (page
+  numbers, headers) is merged back in without loss or duplication.
+- The OCR language setting now actually reaches the OCR engine.
+
+### Added
+- **In-app auto-updates** from GitHub Releases: daily startup check, manual
+  "Check for updates" in Settings, SHA-256 verification of the downloaded
+  installer, and per-version skip. Releases now publish `SHA256SUMS.txt`.
+- **Selectable OCR engine:** built-in Tesseract (default) or Surya — much
+  better table/layout fidelity — installed on demand (~2 GB) with a guided,
+  cancellable download inside Settings.
+- **Enhanced PDF OCR component (optional):** on-demand install of OCRmyPDF +
+  Tesseract CLI + Ghostscript. PDFs then run through `--redo-ocr` for a proper
+  invisible text layer, and a new toggle saves a searchable `name.ocr.pdf`
+  next to the Markdown.
+- **App icon everywhere:** a multi-resolution icon generated from the logo is
+  now embedded in the exe and used by the window, taskbar, installer wizard,
+  Start Menu and desktop shortcuts, and Add/Remove Programs.
+- Warm greige design system (light/dark/system) with tokenized colors and a
+  Mica backdrop; live OS theme following.
+- CI on every push/PR (Windows build + xUnit, Ubuntu pytest), a unit-test
+  project, and a weekly workflow that opens PRs when bundled tools
+  (markitdown & friends) have new releases.
+- MIT license, CONTRIBUTING guide, and a reworked README.
+
+### Changed
+- Bundled tool versions are pinned in `tools/versions.json` for reproducible
+  release builds (previously "latest at build time").
+- Release notes are now hybrid: the curated section from this file plus
+  GitHub's auto-generated categorized commit notes.
+- Removed the unused MSIX template leftovers; MSIX packaging is documented as
+  future work pending a code-signing certificate.
+
 ## v0.2.0 — 2026-06-08
 
 ### Fixed

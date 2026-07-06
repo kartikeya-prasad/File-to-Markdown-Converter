@@ -6,6 +6,10 @@
 
 **A native Windows app that batch-converts documents, images and scanned PDFs into Markdown — fully offline.**
 
+[![Build & Test](../../actions/workflows/build-and-test.yml/badge.svg)](../../actions/workflows/build-and-test.yml)
+[![Release](../../actions/workflows/release.yml/badge.svg)](../../actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 </div>
 
 ---
@@ -15,58 +19,70 @@
 
 ---
 
-It's built on Microsoft's [markitdown](https://github.com/microsoft/markitdown) conversion engine, with one key change: instead of markitdown's **LLM**-based image description, it uses **Tesseract OCR** to pull real text out of images and scanned PDFs — no cloud, no API keys.
+Built on Microsoft's [markitdown](https://github.com/microsoft/markitdown) conversion engine, with real OCR instead of markitdown's LLM-based image description — no cloud, no API keys.
 
 ## ✨ What it does
 
 - **Batch convert** a queue of files (or whole folders) to `.md` — drag & drop, file picker, or folder picker.
 - **Documents** → PDF, Word, PowerPoint, Excel, HTML, CSV/JSON/XML, EPub, Outlook `.msg`, ZIP (via markitdown).
-- **Images** (PNG/JPG/TIFF/BMP/GIF/WEBP) → text extracted with **Tesseract OCR**.
-- **Scanned / image-only PDFs** → pages rendered with PDFium, then OCR'd.
+- **Images** (PNG/JPG/TIFF/BMP/GIF/WEBP) → text extracted with OCR.
+- **PDFs — smart per-page pipeline.** Every page is analyzed individually: pages with a real digital text layer keep their extracted text; scanned pages are OCR'd — even in documents where scans carry machine-typed page numbers (which used to fool whole-file detection). Nothing is dropped, nothing is doubled.
+- **Choice of OCR engine:** built-in **Tesseract** (fast, offline, default) or **Surya** (transformer models with much better table/layout understanding — one-time ~2 GB on-demand download).
+- **Enhanced PDF OCR (optional):** installs [OCRmyPDF](https://ocrmypdf.readthedocs.io/) + Tesseract CLI + Ghostscript on demand; PDFs then get a proper invisible text layer via `--redo-ocr`, and you can **save a searchable PDF** (`name.ocr.pdf`) next to the Markdown.
 - **Audio & YouTube** → transcription via markitdown (these need internet).
-- **Light / Dark / System** theme, configurable concurrency, OCR DPI, and overwrite policy.
+- **Auto-updates** from GitHub Releases — checked at startup (daily) and on demand, with SHA-256 verification.
+- **Warm greige design system** with Light / Dark / System themes, Mica backdrop, configurable concurrency, OCR DPI, and overwrite policy.
 
-## 📦 Download
+## 📦 Download & install
 
 Grab the latest build from the [**Releases**](../../releases) page:
 
 | Artifact | What it is |
 |---|---|
+| `FileToMarkdownConverter-Setup.exe` | Recommended — friendly installer with Start Menu/desktop shortcuts and **auto-update support**. |
 | `FileToMarkdownConverter-portable-x64.zip` | Portable — unzip anywhere and run `FileToMarkdown.App.exe`. No install. |
-| `FileToMarkdownConverter-Setup.exe` | Friendly installer (Inno Setup). |
-| `FileToMarkdownConverter.msi` | MSI installer (WiX). |
+| `FileToMarkdownConverter.msi` | MSI installer (WiX), for scripted/enterprise installs. |
+| `SHA256SUMS.txt` | Checksums for all artifacts (verified by the in-app updater). |
 
 All artifacts are **self-contained** — no need to install .NET, the Windows App SDK, or Python. The Python 3.13 runtime, markitdown, ffmpeg, and Tesseract data are bundled inside.
 
 > A true single-file `.exe` isn't possible here: WinUI 3 + native PDFium/Tesseract libraries + the embedded Python bundle can't be packed into one file. "Portable" means an xcopy-deployable folder you launch by its `.exe`.
+>
+> **MSIX:** planned once a code-signing certificate is in place (unsigned MSIX packages can't be installed without manually trusting a certificate).
+
+## 🔄 How updates work
+
+- The app checks GitHub Releases once a day at startup (and via **Settings → Check for updates**).
+- Setup.exe installs update in place after you confirm; downloads are verified against `SHA256SUMS.txt`. MSI/portable users are pointed to the release page instead.
+- **Bundled tools stay fresh too:** markitdown & friends are pinned in `tools/versions.json`; a weekly workflow opens a bump PR when new versions ship, so every release carries current tools to users.
 
 ## 🧠 How it works
 
 | Project | Role |
 |---|---|
-| `FileToMarkdown.App` | WinUI 3 desktop shell — batch queue, drag-drop, pickers, settings, theme. |
-| `FileToMarkdown.Core` | Conversion engine — markitdown runner, Tesseract OCR, PDFium rasterizer, routing. |
+| `FileToMarkdown.App` | WinUI 3 shell — MVVM (CommunityToolkit) + DI, greige theme tokens, updater UI. |
+| `FileToMarkdown.Core` | Conversion engine — routing, per-page PDF pipeline, OCR engines, update logic. |
 
-- A **persistent Python worker** (`tools/worker.py`) imports markitdown once and converts files over a stdin/stdout protocol, so a batch doesn't pay interpreter startup per file.
+- A **persistent Python worker** (`tools/worker.py`) imports markitdown once and converts files over a stdin/stdout protocol, so a batch doesn't pay interpreter startup per file. Surya runs the same way (`tools/surya_worker.py`).
+- **Per-page PDF routing:** PDFium reports each page's text and its area coverage; a classifier separates truly digital pages from scans stamped with page numbers. Digital pages are extracted with pdfminer, scanned pages rasterized and OCR'd, and the sparse stamped text is merged back in without duplication. Fully digital documents go to markitdown whole.
 - **Why a bundled Python 3.13?** markitdown doesn't install on Python 3.14 yet (its `magika` → `onnxruntime` dependency has no 3.14 wheels). The app ships its own private 3.13 so it works regardless of what's on your machine.
-- `FileRouter` decides per file: images → OCR, PDFs → text-layer probe (born-digital → markitdown, scanned → OCR), everything else → markitdown.
 
-## 🔁 Reproduce / build from source
+## 🔁 Build from source
 
-**Prerequisites:** Windows 10/11 (x64), [.NET SDK 9+](https://dotnet.microsoft.com/download), the WinApp CLI (`winget install Microsoft.WinAppCli`), and the WinUI templates (`dotnet new install Microsoft.WindowsAppSDK.WinUI.CSharp.Templates`). For installers: Inno Setup (`winget install JRSoftware.InnoSetup`) and WiX v5 (`dotnet tool install --global wix --version 5.0.2`).
+**Prerequisites:** Windows 10/11 (x64), [.NET SDK 9+](https://dotnet.microsoft.com/download). For installers: Inno Setup (`winget install JRSoftware.InnoSetup`) and WiX v5 (`dotnet tool install --global wix --version 5.0.2`).
 
 ```powershell
 # 1. Clone
 git clone https://github.com/kartikeya-prasad/File-to-Markdown-Converter.git
 cd File-to-Markdown-Converter
 
-# 2. Fetch the bundled runtime (Python 3.13 + markitdown[all] + ffmpeg + Tesseract data).
-#    These are large (~hundreds of MB) and intentionally NOT committed; this script regenerates them.
+# 2. Fetch the bundled runtime (Python 3.13 + markitdown + ffmpeg + Tesseract data).
+#    Large (~hundreds of MB) and intentionally NOT committed; versions are pinned in tools\versions.json.
 powershell -File tools\setup-python.ps1
 
-# 3. Build & run (debug)
-dotnet build FileToMarkdown.App\FileToMarkdown.App.csproj -c Debug -p:Platform=x64
-# launch the built exe under FileToMarkdown.App\bin\x64\Debug\...\win-x64\
+# 3. Build & test
+dotnet build FileToMarkdown.sln -c Debug -p:Platform=x64
+dotnet test tests\FileToMarkdown.Core.Tests -c Debug -p:Platform=x64
 
 # 4. (optional) Produce distributables into dist\
 powershell -File tools\build-portable.ps1        # portable .zip (run first; stages the publish folder)
@@ -76,15 +92,23 @@ powershell -File tools\build-msi.ps1             # -> FileToMarkdownConverter.ms
 
 The app locates its runtime (`python\`, `tessdata\`) by walking up from the executable, so a debug build works in place once `setup-python.ps1` has run.
 
-> **Automated releases:** pushing a version tag (e.g. `git tag v0.2.0 && git push origin v0.2.0`) runs the `Build & Release` GitHub Actions workflow, which builds all three distributables on a Windows runner with the correct publish flags and attaches them to a new GitHub Release. You can also trigger a build manually from the **Actions** tab. Don't publish hand-built artifacts from Visual Studio's *Publish* — always use the scripts above or the workflow, so trimming stays off and the Windows App SDK runtime is bundled.
+> **Automated releases:** pushing a version tag (e.g. `git tag v0.3.0 && git push origin v0.3.0`) runs the `Build & Release` workflow, which builds all three distributables on a clean Windows runner, generates `SHA256SUMS.txt`, and publishes a GitHub Release whose notes combine the curated `CHANGELOG.md` section with auto-generated commit notes. Every push/PR is validated by the `Build & Test` workflow.
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — conventional commits, test conventions, and how CI acts as the compiler if you don't have a Windows machine.
 
 ## ⚠️ Known limitations
 
 - **Audio transcription** is best-effort (markitdown's backend may need internet/extra setup).
 - **YouTube** conversion needs internet (transcript API).
 - First run after cloning requires `setup-python.ps1` (downloads the runtime).
-- x64 only.
+- x64 only. Artifacts are currently unsigned (SmartScreen may warn on first run).
 
 ## 📄 License
 
-TBD. Bundles third-party components under their own licenses: markitdown (MIT), PDFium (BSD), Tesseract (Apache-2.0), ffmpeg (LGPL/GPL), Python (PSF).
+[MIT](LICENSE). Bundles third-party components under their own licenses: markitdown (MIT), PDFium (BSD), Tesseract (Apache-2.0), ffmpeg (LGPL/GPL), Python (PSF). Optional on-demand components: Surya (GPL-3.0, installed from PyPI), OCRmyPDF (MPL-2.0), Ghostscript (AGPL-3.0, downloaded from Artifex's official releases — never redistributed with this app).
+
+## 📝 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) or the [Releases](../../releases) page.
