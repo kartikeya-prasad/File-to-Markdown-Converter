@@ -10,6 +10,11 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Title bar / taskbar icon (unpackaged apps don't inherit the exe icon here).
+        var icon = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+        if (File.Exists(icon))
+            AppWindow.SetIcon(icon);
+
         // Mica backdrop where supported (Windows 11); older systems silently keep
         // the opaque greige background from the theme.
         if (MicaController.IsSupported())

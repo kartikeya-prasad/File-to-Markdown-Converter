@@ -5,10 +5,12 @@
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
         <OutputType>WinExe</OutputType>
 
-        <!-- WinUI 3 -->
+        <!-- WinUI 3 (unpackaged; MSIX packaging is future work pending a signing certificate) -->
         <UseWinUI>true</UseWinUI>
-        <EnableMsixTooling>true</EnableMsixTooling>
         <WindowsPackageType>None</WindowsPackageType>
+
+        <!-- Multi-resolution icon embedded in the exe (taskbar, shortcuts, Explorer). -->
+        <ApplicationIcon>Assets\app.ico</ApplicationIcon>
 
         <!-- Project Options -->
         <Nullable>enable</Nullable>
@@ -29,13 +31,8 @@
 
     <ItemGroup>
         <Content Include="Assets\logo.svg" CopyToOutputDirectory="PreserveNewest" />
-        <Content Include="Assets\SplashScreen.scale-200.png" />
-        <Content Include="Assets\LockScreenLogo.scale-200.png" />
-        <Content Include="Assets\Square150x150Logo.scale-200.png" />
-        <Content Include="Assets\Square44x44Logo.scale-200.png" />
-        <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
-        <Content Include="Assets\StoreLogo.png" />
-        <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+        <!-- Loose copy of the icon for AppWindow.SetIcon (title bar / taskbar at runtime). -->
+        <Content Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>
@@ -62,21 +59,4 @@
         <Content Include="..\tools\surya_worker.py" Link="surya_worker.py" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
-    <!-- 
-        Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
-        Tools extension to be activated for this project even if the Windows App SDK Nuget
-        package has not yet been restored.
-    -->
-    <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <ProjectCapability Include="Msix"/>
-    </ItemGroup>
-
-    <!-- 
-        Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
-        Explorer "Package and Publish" context menu entry to be enabled for this project even if 
-        the Windows App SDK Nuget package has not yet been restored.
-    -->
-    <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
-    </PropertyGroup>
 </Project>
