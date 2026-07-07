@@ -5,10 +5,15 @@
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
         <OutputType>WinExe</OutputType>
 
-        <!-- WinUI 3. Built unpackaged; the release MSIX is produced separately by
-             tools/build-msix.ps1 over the publish output (packaging/msix/AppxManifest.xml). -->
+        <!-- WinUI 3, built unpackaged. -->
         <UseWinUI>true</UseWinUI>
         <WindowsPackageType>None</WindowsPackageType>
+        <!-- DO NOT REMOVE EnableMsixTooling: despite the name it also gates generation
+             of FileToMarkdown.App.pri (the resource index with all compiled XAML) for
+             UNPACKAGED builds. Removing it shipped v0.3.0 dead on launch - the app
+             aborts before managed code runs when resources.pri is missing.
+             build-portable.ps1 fails the build if the .pri is ever absent again. -->
+        <EnableMsixTooling>true</EnableMsixTooling>
 
         <!-- Multi-resolution icon embedded in the exe (taskbar, shortcuts, Explorer). -->
         <ApplicationIcon>Assets\app.ico</ApplicationIcon>

@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The release workflow
 reads the section matching the version being built and uses it as the GitHub
 Release description, so keep the newest version at the top in the format below.
 
+## v0.5.0 — 2026-07-07
+
+### Fixed
+- **v0.3.0 did not launch at all** (any install type). The v0.3.0 build was
+  missing `FileToMarkdown.App.pri` — the resource index holding the app's
+  compiled XAML — because the MSIX cleanup removed `EnableMsixTooling`, which
+  (despite its name) also drives that file's generation for unpackaged builds.
+  The flag is restored with a warning comment, and the release build now fails
+  hard if the `.pri` is ever missing again, so a dead build can't ship.
+
+### Removed
+- **MSIX package and its self-signed certificate flow** (introduced in
+  v0.3.0). The one-time certificate import was more friction than value;
+  the portable zip, `Setup.exe`, and `.msi` remain.
+
+### Notes
+- Versions 0.3.x/0.4.x are skipped; this release supersedes the broken
+  v0.3.0. All v0.3.0 features (per-page hybrid PDF OCR, Surya engine,
+  Enhanced PDF OCR, auto-updates, new theme and icon) are included and
+  unchanged.
+
 ## v0.3.0 — 2026-07-06
 
 ### Fixed
