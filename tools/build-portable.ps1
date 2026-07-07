@@ -51,6 +51,13 @@ $pub = Get-ChildItem -Path (Join-Path $RepoRoot 'FileToMarkdown.App\bin') -Recur
 if (-not $pub) { throw "Could not find publish output" }
 Write-Host "Publish folder: $pub"
 
+# Guard against the v0.3.0 regression: without FileToMarkdown.App.pri (generated
+# only while EnableMsixTooling=true in the csproj) the app dies instantly at
+# launch. Fail the build rather than ship a dead app.
+if (-not (Test-Path (Join-Path $pub 'FileToMarkdown.App.pri'))) {
+    throw "FileToMarkdown.App.pri missing from publish output - the app would not launch. Check EnableMsixTooling in FileToMarkdown.App.csproj."
+}
+
 Write-Host "=== Staging to short path: $StageDir ===" -ForegroundColor Cyan
 if (Test-Path $StageDir) { Remove-Item $StageDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $StageDir | Out-Null

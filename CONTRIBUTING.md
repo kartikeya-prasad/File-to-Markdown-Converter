@@ -55,13 +55,17 @@ or dispatching the **Build & Release** workflow. It builds the portable zip, the
 Inno Setup installer and the MSI, generates `SHA256SUMS.txt`, and publishes a GitHub
 Release; installed apps pick it up through the in-app updater.
 
-### Signing
+### Signing (future work)
 
-The MSIX is signed in CI: with the certificate from the `SIGNING_PFX_B64` /
-`SIGNING_PFX_PASSWORD` repository secrets when present, otherwise with a
-build-generated **self-signed** certificate whose public `.cer` is published in
-the release (users import it once into Trusted People). The Setup.exe/MSI are
-currently unsigned. To move to trusted signing later (e.g. Azure Trusted
-Signing or an OV certificate), add the secrets — no workflow changes needed.
-Store certificates and passwords only in GitHub Actions secrets — never in the
-repository.
+Artifacts are currently unsigned (SmartScreen may warn on first run). When a
+real code-signing certificate exists (e.g. Azure Trusted Signing or an OV
+certificate), store it only in GitHub Actions secrets — never in the
+repository — and add a signing step to the release workflow.
+
+### A hard-won warning
+
+`EnableMsixTooling` in `FileToMarkdown.App.csproj` must stay `true` even though
+the app ships unpackaged and there is no MSIX: the flag also gates generation
+of `FileToMarkdown.App.pri`, without which the app dies instantly at launch
+(this shipped as the broken v0.3.0). `build-portable.ps1` fails the build if
+the `.pri` is missing.
