@@ -1,7 +1,7 @@
 {
   "_comment": "Pinned versions of bundled tools. setup-python.ps1 installs exactly these, so release builds are reproducible. The weekly tool-updates workflow opens a PR when newer versions exist.",
   "python": "3.13.1",
-  "markitdown": "0.1.6",
+  "markitdown": "0.1.7",
   "tessdata_eng_url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata",
   "ffmpeg_url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 }
